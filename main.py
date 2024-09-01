@@ -1,31 +1,66 @@
-# this allows us to use code from
-# the open-source pygame library
-# throughout this file
 import pygame
-
-# imports constants
+import sys
 from constants import *
+from player import Player
+from asteroid import Asteroid
+from asteroidfield import AsteroidField
+from shot import Shot
+
+
 
 def main():
-  pygame.init()
-  print("Starting asteroids!")
-  print(f"Screen width: {SCREEN_WIDTH}")
-  print(f"Screen height: {SCREEN_HEIGHT}")
-  
-  screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    clock = pygame.time.Clock()
+    updatable = pygame.sprite.Group()
+    drawable = pygame.sprite.Group()
+    asteroid_group = pygame.sprite.Group()
+    player_shots = pygame.sprite.Group()
+    Asteroid.containers = (updatable, drawable, asteroid_group)
+    AsteroidField.containers = (updatable)
+    Player.containers = (updatable, drawable)
+    Shot.containers = (updatable, drawable, player_shots)
+    player = Player(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
+    asteroid_field = AsteroidField()
+    dt = 0
 
-  # Game loop
-  while True:
-    # Allows user to exit
-    for event in pygame.event.get():
-       if event.type == pygame.QUIT:
-          return
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
+            
+        # limit the framerate to 60 FPS
+        dt = clock.tick(60) / 1000
+        for sprite in updatable:
+            sprite.update(dt)
+        
+        for obj in asteroid_group:
+            if obj.collision(player):
+                print("GAME OVER")
+                sys.exit()
+            for shot in player_shots:
+                if shot.collision(obj):
+                    shot.kill()
+                    obj.split()
 
-    # Makes screen black
-    pygame.Surface.fill(screen, (0,0,0))
+        screen.fill("black")
 
-    # Refreshes screen
-    pygame.display.flip()
+        shots_to_remove = []
+
+        for obj in player_shots:
+            obj.update(dt)
+            if (obj.position.x < 0 or obj.position.x > SCREEN_WIDTH or obj.position.y < 0 or obj.position.y > SCREEN_HEIGHT):
+              shots_to_remove.append(obj)
+            obj.draw(screen)
+        
+        for obj in shots_to_remove:
+            player_shots.remove(obj)
+
+
+        for sprite in drawable:
+            sprite.draw(screen)
+        
+        pygame.display.flip()
 
 
 if __name__ == "__main__":
